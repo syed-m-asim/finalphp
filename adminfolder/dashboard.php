@@ -1,21 +1,66 @@
 <?php
-include("../../asimtemp/connection.php");
+
+include("../../finalphp/connection.php");
+
+$message = "";
+$msgType = "";
+
+// Agar form submit hua (AJAX request ke through action='add_product')
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add_product') {
+
+    // 1. Text Inputs Sanitize karein
+    $pname = mysqli_real_escape_string($call, $_POST['pname']); // Note: $call use kiya hai aapke code ke hisab se
+    $description = mysqli_real_escape_string($call, $_POST['description']);
+    $price = $_POST['price'];
+    $quantity = $_POST['quantity'];
+
+    // 2. Image Upload Logic
+    $imagename = $_FILES['image']['name'];
+    $imagetmpname = $_FILES['image']['tmp_name'];
+    $folder = "uploads/"; // Is folder ko create karna zaroori hai
+    $filepath = $folder . $imagename;
+
+    // Image ko server par move karein
+    if (move_uploaded_file($imagetmpname, $filepath)) {
+        
+        $query = "INSERT INTO `product`(`pname`, `pdescription`, `pprice`, `pquantity`, `pimage`)
+                  VALUES ('$pname','$description','$price','$quantity','$filepath')";
+
+        if (mysqli_query($call, $query)) {
+            $message = "Product successfully added!";
+            $msgType = "success";
+        } else {
+            $message = "Database Error: " . mysqli_error($call);
+            $msgType = "error";
+        }
+    } else {
+        $message = "Image upload failed!";
+        $msgType = "error";
+    }
+
+    // JSON Response bhejein JavaScript ko
+    echo json_encode(['status' => $msgType, 'msg' => $message]);
+    exit; // PHP ruk jayega
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultras Admin - Summer Collection</title>
     <!-- Icons ke liye FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         :root {
             /* Summer Theme Color Palette */
-            --primary-color: #0ea5e9; /* Sky Blue */
+            --primary-color: #0ea5e9;
+            /* Sky Blue */
             --primary-dark: #0284c7;
-            --secondary-color: #f59e0b; /* Sunny Yellow */
+            --secondary-color: #f59e0b;
+            /* Sunny Yellow */
             --bg-color: #f0f9ff;
             --sidebar-bg: #ffffff;
             --card-bg: #ffffff;
@@ -23,7 +68,7 @@ include("../../asimtemp/connection.php");
             --text-light: #64748b;
             --danger: #ef4444;
             --success: #10b981;
-            
+
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             --radius: 12px;
@@ -45,10 +90,10 @@ include("../../asimtemp/connection.php");
             overflow: hidden;
         }
 
-        /* --- Sidebar Styles --- */
+        /* --- Sidebar --- */
         .sidebar {
             width: 260px;
-            background-color: var(--sidebar-bg);
+            background: var(--sidebar-bg);
             border-right: 1px solid #e2e8f0;
             display: flex;
             flex-direction: column;
@@ -95,8 +140,9 @@ include("../../asimtemp/connection.php");
             transition: var(--transition);
         }
 
-        .nav-link:hover, .nav-link.active {
-            background-color: #e0f2fe; /* Light blue bg */
+        .nav-link:hover,
+        .nav-link.active {
+            background-color: #e0f2fe;
             color: var(--primary-color);
         }
 
@@ -105,7 +151,7 @@ include("../../asimtemp/connection.php");
             text-align: center;
         }
 
-        /* --- Main Content Styles --- */
+        /* --- Main Content --- */
         .main-content {
             flex: 1;
             display: flex;
@@ -113,7 +159,6 @@ include("../../asimtemp/connection.php");
             overflow: hidden;
         }
 
-        /* Top Header */
         header {
             background: var(--card-bg);
             padding: 15px 30px;
@@ -148,14 +193,13 @@ include("../../asimtemp/connection.php");
             border: 2px solid var(--primary-color);
         }
 
-        /* Scrollable Content Area */
         .content-scroll {
             flex: 1;
             overflow-y: auto;
             padding: 30px;
         }
 
-        /* --- Dashboard Widgets --- */
+        /* --- Widgets --- */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -180,10 +224,21 @@ include("../../asimtemp/connection.php");
             box-shadow: var(--shadow-md);
         }
 
-        .stat-card.blue { border-bottom-color: var(--primary-color); }
-        .stat-card.yellow { border-bottom-color: var(--secondary-color); }
-        .stat-card.green { border-bottom-color: var(--success); }
-        .stat-card.red { border-bottom-color: var(--danger); }
+        .stat-card.blue {
+            border-bottom-color: var(--primary-color);
+        }
+
+        .stat-card.yellow {
+            border-bottom-color: var(--secondary-color);
+        }
+
+        .stat-card.green {
+            border-bottom-color: var(--success);
+        }
+
+        .stat-card.red {
+            border-bottom-color: var(--danger);
+        }
 
         .stat-icon {
             width: 50px;
@@ -195,15 +250,38 @@ include("../../asimtemp/connection.php");
             font-size: 24px;
         }
 
-        .bg-blue-light { background: #e0f2fe; color: var(--primary-color); }
-        .bg-yellow-light { background: #fef3c7; color: var(--secondary-color); }
-        .bg-green-light { background: #d1fae5; color: var(--success); }
-        .bg-red-light { background: #fee2e2; color: var(--danger); }
+        .bg-blue-light {
+            background: #e0f2fe;
+            color: var(--primary-color);
+        }
 
-        .stat-info h3 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
-        .stat-info p { color: var(--text-light); font-size: 14px; }
+        .bg-yellow-light {
+            background: #fef3c7;
+            color: var(--secondary-color);
+        }
 
-        /* --- Sections (Tabs) --- */
+        .bg-green-light {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .bg-red-light {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .stat-info h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-info p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* --- Tabs --- */
         .section-container {
             display: none;
             animation: fadeIn 0.4s ease;
@@ -214,11 +292,18 @@ include("../../asimtemp/connection.php");
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* --- Collection Table --- */
+        /* --- Table & Cards --- */
         .card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -240,17 +325,22 @@ include("../../asimtemp/connection.php");
             border: none;
             cursor: pointer;
             font-weight: 600;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
             transition: var(--transition);
+            text-decoration: none;
+            font-size: 14px;
         }
 
         .btn-primary {
             background-color: var(--primary-color);
             color: white;
         }
-        .btn-primary:hover { background-color: var(--primary-dark); }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
 
         .btn-danger {
             background-color: #fee2e2;
@@ -258,14 +348,18 @@ include("../../asimtemp/connection.php");
             padding: 6px 12px;
             font-size: 12px;
         }
-        .btn-danger:hover { background-color: #fecaca; }
+
+        .btn-danger:hover {
+            background-color: #fecaca;
+        }
 
         table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        th, td {
+        th,
+        td {
             padding: 16px;
             text-align: left;
             border-bottom: 1px solid #f1f5f9;
@@ -278,7 +372,9 @@ include("../../asimtemp/connection.php");
             text-transform: uppercase;
         }
 
-        td { font-size: 15px; }
+        td {
+            font-size: 15px;
+        }
 
         .product-img {
             width: 50px;
@@ -293,15 +389,25 @@ include("../../asimtemp/connection.php");
             font-size: 12px;
             font-weight: 600;
         }
-        .badge-stock { background: #d1fae5; color: var(--success); }
-        .badge-low { background: #fef3c7; color: var(--secondary-color); }
 
-        /* --- Add Product Modal --- */
+        .badge-stock {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .badge-low {
+            background: #fef3c7;
+            color: var(--secondary-color);
+        }
+
+        /* --- Modal --- */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -324,12 +430,25 @@ include("../../asimtemp/connection.php");
             max-width: 90%;
             transform: scale(0.9);
             transition: var(--transition);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
-        .modal-overlay.open .modal { transform: scale(1); }
+        .modal-overlay.open .modal {
+            transform: scale(1);
+        }
 
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
         .form-control {
             width: 100%;
             padding: 10px 12px;
@@ -338,9 +457,13 @@ include("../../asimtemp/connection.php");
             outline: none;
             transition: var(--transition);
         }
-        .form-control:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px #e0f2fe; }
 
-        /* --- Chart (Simple CSS Bar Chart) --- */
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px #e0f2fe;
+        }
+
+        /* --- Chart --- */
         .chart-container {
             display: flex;
             align-items: flex-end;
@@ -349,7 +472,7 @@ include("../../asimtemp/connection.php");
             padding-top: 20px;
             border-bottom: 1px solid #e2e8f0;
         }
-        
+
         .bar-group {
             display: flex;
             flex-direction: column;
@@ -364,9 +487,8 @@ include("../../asimtemp/connection.php");
             background: linear-gradient(to top, var(--primary-color), #7dd3fc);
             border-radius: 4px 4px 0 0;
             transition: height 1s ease;
-            position: relative;
         }
-        
+
         .bar:hover {
             background: linear-gradient(to top, var(--primary-dark), #38bdf8);
         }
@@ -377,7 +499,7 @@ include("../../asimtemp/connection.php");
             color: var(--text-light);
         }
 
-        /* --- Toast Notification --- */
+        /* --- Toast --- */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -394,10 +516,27 @@ include("../../asimtemp/connection.php");
             transition: transform 0.3s ease;
             z-index: 2000;
         }
-        .toast.show { transform: translateX(0); }
-        .toast i { color: var(--success); font-size: 20px; }
 
-        /* --- Mobile Toggle --- */
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast i {
+            font-size: 20px;
+        }
+
+        .toast.success i {
+            color: var(--success);
+        }
+
+        .toast.error i {
+            color: var(--danger);
+        }
+
         .menu-toggle {
             display: none;
             font-size: 24px;
@@ -405,21 +544,28 @@ include("../../asimtemp/connection.php");
             color: var(--text-main);
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
                 left: -260px;
                 height: 100%;
             }
+
             .sidebar.active {
                 left: 0;
             }
-            .menu-toggle { display: block; }
-            .stats-grid { grid-template-columns: 1fr; }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <!-- Sidebar -->
@@ -430,39 +576,25 @@ include("../../asimtemp/connection.php");
         </div>
         <ul class="nav-links">
             <li class="nav-item">
-                <a href="#" class="nav-link active" onclick="switchTab('dashboard', this)">
-                    <i class="fa-solid fa-chart-line"></i> Dashboard
-                </a>
+                <a href="#" class="nav-link active" onclick="switchTab('dashboard', this)"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="switchTab('collection', this)">
-                    <i class="fa-solid fa-shirt"></i> Summer Collection
-                </a>
+                <a href="#" class="nav-link" onclick="switchTab('collection', this)"><i class="fa-solid fa-shirt"></i> Summer Collection</a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="switchTab('orders', this)">
-                    <i class="fa-solid fa-box-open"></i> Orders
-                </a>
+                <a href="#" class="nav-link" onclick="switchTab('orders', this)"><i class="fa-solid fa-box-open"></i> Orders</a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fa-solid fa-users"></i> Customers
-                </a>
+                <a href="#" class="nav-link"><i class="fa-solid fa-users"></i> Customers</a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link">
-                    <i class="fa-solid fa-gear"></i> Settings
-                </a>
+                <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
             </li>
         </ul>
-        <div style="padding: 20px; text-align: center; color: var(--text-light); font-size: 12px;">
-            &copy; 2023 Ulras Inc. <br> Summer Vibes
-        </div>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Header -->
         <header>
             <div class="header-title" style="display: flex; align-items: center; gap: 15px;">
                 <i class="fa-solid fa-bars menu-toggle" onclick="toggleSidebar()"></i>
@@ -477,9 +609,7 @@ include("../../asimtemp/connection.php");
             </div>
         </header>
 
-        <!-- Scrollable Area -->
         <div class="content-scroll">
-            
             <!-- DASHBOARD SECTION -->
             <section id="dashboard" class="section-container active">
                 <div class="stats-grid">
@@ -513,7 +643,6 @@ include("../../asimtemp/connection.php");
                     </div>
                 </div>
 
-                <!-- Sales Chart -->
                 <div class="card">
                     <div class="card-header">
                         <h3>Summer Sales Trend</h3>
@@ -524,32 +653,25 @@ include("../../asimtemp/connection.php");
                     </div>
                     <div class="chart-container">
                         <div class="bar-group">
-                            <div class="bar" style="height: 40%;"></div>
-                            <span class="bar-label">Mon</span>
+                            <div class="bar" style="height: 40%;"></div><span class="bar-label">Mon</span>
                         </div>
                         <div class="bar-group">
-                            <div class="bar" style="height: 65%;"></div>
-                            <span class="bar-label">Tue</span>
+                            <div class="bar" style="height: 65%;"></div><span class="bar-label">Tue</span>
                         </div>
                         <div class="bar-group">
-                            <div class="bar" style="height: 85%;"></div>
-                            <span class="bar-label">Wed</span>
+                            <div class="bar" style="height: 85%;"></div><span class="bar-label">Wed</span>
                         </div>
                         <div class="bar-group">
-                            <div class="bar" style="height: 50%;"></div>
-                            <span class="bar-label">Thu</span>
+                            <div class="bar" style="height: 50%;"></div><span class="bar-label">Thu</span>
                         </div>
                         <div class="bar-group">
-                            <div class="bar" style="height: 95%;"></div>
-                            <span class="bar-label">Fri</span>
+                            <div class="bar" style="height: 95%;"></div><span class="bar-label">Fri</span>
                         </div>
                         <div class="bar-group">
-                            <div class="bar" style="height: 70%;"></div>
-                            <span class="bar-label">Sat</span>
+                            <div class="bar" style="height: 70%;"></div><span class="bar-label">Sat</span>
                         </div>
                         <div class="bar-group">
-                            <div class="bar" style="height: 60%;"></div>
-                            <span class="bar-label">Sun</span>
+                            <div class="bar" style="height: 60%;"></div><span class="bar-label">Sun</span>
                         </div>
                     </div>
                 </div>
@@ -560,33 +682,33 @@ include("../../asimtemp/connection.php");
                 <div class="card">
                     <div class="card-header">
                         <h3>Summer Collection Inventory</h3>
-                      <button class="btn btn-primary" > <a href="addproduct.php"> 
-                            <i class="fa-solid fa-plus"></i> Add New Product</a>
+                        <button class="btn btn-primary" onclick="openModal()">
+                            <i class="fa-solid fa-plus"></i> Add New Product
                         </button>
                     </div>
-                    
+
                     <div style="overflow-x: auto;">
                         <table id="productTable">
                             <thead>
                                 <tr>
                                     <th>Image</th>
                                     <th>Product Name</th>
-                                    <th>Category</th>
+                                    <th>Description</th>
                                     <th>Price</th>
-                                    <th>Stock Status</th>
+                                    <th>Quantity</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
-                                <!-- JS se data yahan aayega -->
+                                <!-- Data JS se render hoga -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-             <!-- ORDERS SECTION -->
-             <section id="orders" class="section-container">
+            <!-- ORDERS SECTION -->
+            <section id="orders" class="section-container">
                 <div class="card">
                     <div class="card-header">
                         <h3>Recent Orders</h3>
@@ -638,30 +760,36 @@ include("../../asimtemp/connection.php");
                 <h3>Add Summer Item</h3>
                 <i class="fa-solid fa-xmark" onclick="closeModal()" style="cursor: pointer; font-size: 20px;"></i>
             </div>
-            <form id="addProductForm" onsubmit="handleAddProduct(event)">
+            <!-- enctype="multipart/form-data" is required for file uploads -->
+            <form id="addProductForm" action="" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add_product">
+
                 <div class="form-group">
                     <label>Product Name</label>
-                    <input type="text" id="pName" class="form-control" placeholder="e.g. Tropical Shirt" required>
+                    <input type="text" id="pname" name="pname" class="form-control" placeholder="e.g. Tropical Shirt" required>
                 </div>
+
                 <div class="form-group">
-                    <label>Category</label>
-                    <select id="pCategory" class="form-control">
-                        <option value="Clothing">Clothing</option>
-                        <option value="Accessories">Accessories</option>
-                        <option value="Footwear">Footwear</option>
-                    </select>
+                    <label>Description</label>
+                    <input type="text" id="description" name="description" class="form-control" placeholder="Product details..." required>
                 </div>
+
                 <div class="form-group">
                     <label>Price ($)</label>
-                    <input type="number" id="pPrice" class="form-control" placeholder="0.00" required>
+                    <input type="number" id="price" name="price" class="form-control" placeholder="0.00" step="0.01" required>
                 </div>
+
                 <div class="form-group">
-                    <label>Stock Status</label>
-                    <select id="pStock" class="form-control">
-                        <option value="In Stock">In Stock</option>
-                        <option value="Low Stock">Low Stock</option>
-                    </select>
+                    <label>Quantity</label>
+                    <input type="number" id="quantity" name="quantity" class="form-control" placeholder="0" required>
                 </div>
+
+                <div class="form-group">
+                    <label>Product Image</label>
+                    <input type="file" name="image" id="image" class="form-control" required>
+                    <small style="color: #64748b;">Upload an image (jpg, png)</small>
+                </div>
+
                 <div style="text-align: right; margin-top: 20px;">
                     <button type="button" class="btn" onclick="closeModal()" style="background: #e2e8f0; margin-right: 10px;">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Product</button>
@@ -677,31 +805,49 @@ include("../../asimtemp/connection.php");
     </div>
 
     <script>
-        // --- 1. Initial Data (Mock Data) ---
-        let products = [
-            { id: 1, name: "Floral Breeze Dress", category: "Clothing", price: 55.00, stock: "In Stock", img: "dress" },
-            { id: 2, name: "Palm Tree Shirt", category: "Clothing", price: 35.00, stock: "Low Stock", img: "shirt" },
-            { id: 3, name: "Ocean Wave Sandals", category: "Footwear", price: 40.00, stock: "In Stock", img: "shoes" },
-            { id: 4, name: "Summer Sun Hat", category: "Accessories", price: 20.00, stock: "In Stock", img: "hat" }
+        // --- 1. Initial Mock Data ---
+        let products = [{
+                id: 1,
+                name: "Floral Breeze Dress",
+                description: "Cotton summer dress",
+                price: 55.00,
+                quantity: 10,
+                pimage: "https://picsum.photos/seed/dress/100/100"
+            },
+            {
+                id: 2,
+                name: "Palm Tree Shirt",
+                description: "Relaxed fit shirt",
+                price: 35.00,
+                quantity: 5,
+                pimage: "https://picsum.photos/seed/shirt/100/100"
+            },
+            {
+                id: 3,
+                name: "Ocean Wave Sandals",
+                description: "Beach footwear",
+                price: 40.00,
+                quantity: 12,
+                pimage: "https://picsum.photos/seed/shoes/100/100"
+            }
         ];
 
         // --- 2. Render Table Function ---
         function renderTable() {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ''; // Clear existing
+            tbody.innerHTML = '';
 
-            products.forEach((product, index) => {
-                const stockClass = product.stock === "In Stock" ? "badge-stock" : "badge-low";
-                // Using picsum for placeholder images based on keywords
-                const imgSrc = `https://picsum.photos/seed/${product.img + index}/100/100`;
+            products.forEach((product) => {
+                // Agar pimage local path hai (uploads/) to use directly, warna mock image
+                const imgSrc = product.pimage.startsWith('http') ? product.pimage : product.pimage;
 
                 const row = `
                     <tr>
                         <td><img src="${imgSrc}" class="product-img" alt="Product"></td>
                         <td>${product.name}</td>
-                        <td>${product.category}</td>
-                        <td>$${product.price.toFixed(2)}</td>
-                        <td><span class="badge ${stockClass}">${product.stock}</span></td>
+                        <td>${product.description}</td>
+                        <td>$${parseFloat(product.price).toFixed(2)}</td>
+                        <td>${product.quantity}</td>
                         <td>
                             <button class="btn btn-danger" onclick="deleteProduct(${product.id})">
                                 <i class="fa-solid fa-trash"></i>
@@ -715,12 +861,9 @@ include("../../asimtemp/connection.php");
 
         // --- 3. Navigation Logic ---
         function switchTab(tabId, element) {
-            // Hide all sections
             document.querySelectorAll('.section-container').forEach(sec => sec.classList.remove('active'));
-            // Show target section
             document.getElementById(tabId).classList.add('active');
-            
-            // Update Header Title
+
             const titles = {
                 'dashboard': 'Dashboard Overview',
                 'collection': 'Summer Collection Management',
@@ -728,12 +871,10 @@ include("../../asimtemp/connection.php");
             };
             document.getElementById('page-title').innerText = titles[tabId] || 'Ultras Admin';
 
-            // Update Nav Active State
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            if(element) element.classList.add('active');
+            if (element) element.classList.add('active');
 
-            // Mobile: Close sidebar after click
-            if(window.innerWidth <= 768) {
+            if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('active');
             }
         }
@@ -752,44 +893,86 @@ include("../../asimtemp/connection.php");
             document.getElementById('addProductForm').reset();
         }
 
-        // --- 5. Add Product Logic ---
-        function handleAddProduct(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('pName').value;
-            const category = document.getElementById('pCategory').value;
-            const price = parseFloat(document.getElementById('pPrice').value);
-            const stock = document.getElementById('pStock').value;
+        // --- 5. AJAX Add Product Logic (Database Connection + File Upload) ---
+        document.getElementById('addProductForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Page refresh rokne ke liye
 
-            const newProduct = {
-                id: Date.now(), // Unique ID
-                name: name,
-                category: category,
-                price: price,
-                stock: stock,
-                img: category.toLowerCase() // Used for image seed
-            };
+            const formData = new FormData(this);
 
-            products.push(newProduct); // Add to array
-            renderTable(); // Update UI
-            closeModal(); // Close modal
-            showToast(`"${name}" added successfully!`);
-        }
+            // Data bhej rahe hain USI PAGE par
+            fetch('', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Database mein save ho gaya
+                        // Local array ko update karein taaki table refresh ho bina reload
+                        // Note: Server se wapas image path nahi mil raha isliye hum mock kar rahe hain ya browser read karega
+                        const fileInput = document.getElementById('image');
+                        const file = fileInput.files[0];
+
+                        let imageUrl = "https://picsum.photos/200"; // Fallback
+
+                        if (file) {
+                            // Create a temporary URL for preview immediately
+                            imageUrl = URL.createObjectURL(file);
+                        }
+
+                        const newProduct = {
+                            id: Date.now(),
+                            name: formData.get('pname'),
+                            description: formData.get('description'),
+                            price: formData.get('price'),
+                            quantity: formData.get('quantity'),
+                            pimage: imageUrl // Temporary preview
+                        };
+
+                        products.push(newProduct);
+                        renderTable();
+                        closeModal();
+                        showToast(data.msg, 'success');
+
+                        // Optional: Page refresh karein agar real server path chahiye
+                        // setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showToast(data.msg, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast("Server Error! Please check connection.", 'error');
+                });
+        });
 
         // --- 6. Delete Product Logic ---
         function deleteProduct(id) {
-            if(confirm("Are you sure you want to remove this summer item?")) {
+            if (confirm("Are you sure you want to remove this item?")) {
                 products = products.filter(p => p.id !== id);
                 renderTable();
-                showToast("Item deleted.");
+                showToast("Item removed from list.", 'success');
             }
         }
 
         // --- 7. Toast Notification ---
-        function showToast(message) {
+        function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
-            document.getElementById('toastMsg').innerText = message;
-            toast.classList.add('show');
+            const toastMsg = document.getElementById('toastMsg');
+            const icon = toast.querySelector('i');
+
+            toastMsg.innerText = message;
+
+            toast.className = 'toast';
+            if (type === 'error') {
+                toast.classList.add('error');
+                icon.className = 'fa-solid fa-circle-exclamation';
+            } else {
+                toast.classList.add('show');
+                icon.className = 'fa-solid fa-circle-check';
+            }
+
+            setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
@@ -799,7 +982,7 @@ include("../../asimtemp/connection.php");
         window.onload = function() {
             renderTable();
         };
-
     </script>
 </body>
+
 </html>
