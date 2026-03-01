@@ -1,6 +1,6 @@
 <?php
 
-include("../../finalphp/connection.php");
+include("connection.php");
 
 $message = "";
 $msgType = "";
@@ -9,7 +9,7 @@ $msgType = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add_product') {
 
     // 1. Text Inputs Sanitize karein
-    $pname = mysqli_real_escape_string($call, $_POST['pname']); // Note: $call use kiya hai aapke code ke hisab se
+    $pname = mysqli_real_escape_string($call, $_POST['pname']); 
     $description = mysqli_real_escape_string($call, $_POST['description']);
     $price = $_POST['price'];
     $quantity = $_POST['quantity'];
@@ -17,7 +17,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
     // 2. Image Upload Logic
     $imagename = $_FILES['image']['name'];
     $imagetmpname = $_FILES['image']['tmp_name'];
-    $folder = "uploads/"; // Is folder ko create karna zaroori hai
+    $folder = "uploads/"; 
     $filepath = $folder . $imagename;
 
     // Image ko server par move karein

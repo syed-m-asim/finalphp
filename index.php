@@ -227,6 +227,33 @@ include("connection.php")
       </div>
     </section>
 
+<!-- adding new products -->
+<?php 
+$result=mysqli_query($call,"SELECT * FROM `product`");
+?>
+
+<div class="row ">
+  <?php 
+  while($row=mysqli_fetch_assoc($result)){
+  ?>
+  <div class="card col-md-3 col-sm-6 col-12 mb-4" style="width: 18rem;">
+  <img src="<?php echo $row['pimage'] ?>" class="card-img-top" alt="...">
+  <div class="card-body">
+    <h5 class="card-title"><?php echo $row ['pname'] ?></h5>
+    <p class="card-text"><?php echo $row ['pdescription'] ?></p>
+    <div class="product-price">
+							<span class="new-price">Price : <?php echo $row['pprice']?></span>
+						</div>
+  <div>Quantity : <?php echo$row ['pquantity'] ?></div>
+  <a href="pdetail.php?id=<?php echo $row ['id'] ?>" class="btn btn-primary">View detail</a>
+  </div>
+</div>
+	<?php
+	  }
+?>
+</div>
+
+
     <section id="featured-products" class="product-store padding-large">
       <div class="container">
         <div class="section-header d-flex flex-wrap align-items-center justify-content-between">
