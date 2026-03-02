@@ -21,6 +21,10 @@ include("connection.php")
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- bootstrap link -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
     <!-- script
     ================================================== -->
     <script src="js/modernizr.js"></script>
@@ -236,7 +240,7 @@ $result=mysqli_query($call,"SELECT * FROM `product`");
   <?php 
   while($row=mysqli_fetch_assoc($result)){
   ?>
-  <div class="card col-md-3 col-sm-6 col-12 mb-4" style="width: 18rem;">
+  <div class="card col-md-3 col-sm-6 col-12 mt-3" style="width: 18rem;">
   <img src="<?php echo $row['pimage'] ?>" class="card-img-top" alt="...">
   <div class="card-body">
     <h5 class="card-title"><?php echo $row ['pname'] ?></h5>
